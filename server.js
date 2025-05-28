@@ -8,7 +8,7 @@ import joinFleetDataForComment from "./utils/joinFleetForComment.js";
 import authRoutes from "./routes/auth.js";
 import { attachSupabase } from "./middleware/auth.js";
 
-dotenv.config();
+process.env.NODE_ENV !== 'production' && dotenv.config();
 const app=express();
 const PORT=process.env.PORT || 3000;
 
