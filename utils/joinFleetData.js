@@ -1,4 +1,3 @@
-import {supabase} from "../supabase-admin.js";
 
 async function joinFleetData(accountID, data, fieldToExtractIDs,reqSupabase){
     const accountIDs=[...new Set(data.map(d=>d[fieldToExtractIDs]))];
