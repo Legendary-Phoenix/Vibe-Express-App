@@ -1,4 +1,3 @@
-import { supabase } from "../supabase-admin.js";
 
 async function joinFleetForComment(accountID, data,reqSupabase) {
   const accountIDs = new Set();
