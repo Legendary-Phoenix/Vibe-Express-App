@@ -1,0 +1,1 @@
+These are the RPC functions to execute complex queries in an optimized way. The RPC functions were written and saved in Supabase, and accessed in this Express client using the Supabase Client API. The sql files of the functions in this folder serve only as reference.
