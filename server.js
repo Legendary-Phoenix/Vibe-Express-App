@@ -253,6 +253,18 @@ app.get("/comment/reply",attachSupabase, async (req,res)=>{
     
 })
 
+app.get("/public-url",attachSupabase, async (req,res)=>{
+    const {bucketName,mediaPath}=req.query;
+
+    const {data,error}=await req.supabase.storage.from(bucketName).getPublicUrl(mediaPath);
+        
+    if (error){
+        return sendErrorResponse({res,statusCode:500,errorMessage:`Unable to get publicUrl: ${error.message}`});
+    };
+    return sendSuccessResponse({res,data:{publicUrl:data.publicUrl}});
+    
+})
+
 
 
 
