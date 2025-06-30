@@ -1,48 +1,96 @@
 create or replace function get_main_comments(
   input_post_id int8,
-  input_limit integer default 20,
-  input_cursor timestamp with time zone default now()
+  input_cursor timestamptz default null,
+  input_limit int default 10
 )
 returns table (
-  comment jsonb
+  commentid int8,
+  createdat timestamptz,
+  text text,
+  postid int8,
+  parentcommentid int8,
+  commenteraccountid uuid,
+  commenttype text,
+  likescount integer,
+  edited boolean,
+  maincommentid int8,
+  replycount int8,
+  replies jsonb
 )
-language plpgsql
+language sql
 as $$
-begin
-  return query
-  select jsonb_build_object(
-    'commentID', main.commentID,
-    'createdAt', main.createdAt,
-    'text', main.text,
-    'postID', main.postID,
-    'parentCommentID', main.parentCommentID,
-    'commenterAccountID', main.commenterAccountID,
-    'commentType', main.commentType,
-    'likesCount', main.likesCount,
-    'edited', main.edited,
-    'replies', (
-      select jsonb_agg(jsonb_build_object(
-        'commentID', reply.commentID,
-        'createdAt', reply.createdAt,
-        'text', reply.text,
-        'postID', reply.postID,
-        'parentCommentID', reply.parentCommentID,
-        'commenterAccountID', reply.commenterAccountID,
-        'commentType', reply.commentType,
-        'likesCount', reply.likesCount,
-        'edited', reply.edited
-      ) order by reply.createdAt desc)
-      from Comments reply
-      where reply.mainCommentID = main.commentID
-        and reply.commentType = 'Reply'
-      limit 3
-    )
-  ) as comment
-  from Comments main
-  where main.commentType = 'Main'
-    and main.postID = input_post_id
-    and main.createdAt < input_cursor
-  order by main.createdAt desc
-  limit input_limit;
-end;
+  with main_comments as (
+    select 
+      c."commentID",
+      c."createdAt",
+      c."text",
+      c."postID",
+      c."parentCommentID",
+      c."commenterAccountID",
+      c."commentType",
+      c."likesCount",
+      c."edited",
+      c."mainCommentID"
+    from 
+      public."Comments" c
+    where 
+      c."postID" = input_post_id
+      and c."commentType" = 'Main'
+      and (input_cursor is null or c."createdAt" < input_cursor)
+    order by 
+      c."createdAt" desc
+    limit 
+      input_limit
+  )
+  select 
+    mc."commentID",
+    mc."createdAt",
+    mc."text",
+    mc."postID",
+    mc."parentCommentID",
+    mc."commenterAccountID",
+    mc."commentType",
+    mc."likesCount",
+    mc."edited",
+    mc."mainCommentID",
+
+    (
+      select count(*)
+      from public."Comments" r
+      where r."mainCommentID" = mc."commentID"
+        and r."commentType" = 'Reply'
+    ) as replycount,
+
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'commentid', r."commentID",
+          'createdat', r."createdAt",
+          'text', r."text",
+          'postid', r."postID",
+          'parentcommentid', r."parentCommentID",
+          'commenteraccountid', r."commenterAccountID",
+          'commenttype', r."commentType",
+          'likescount', r."likesCount",
+          'edited', r."edited",
+          'maincommentid', r."mainCommentID",
+          'parentcommentusername', pc."displayName"
+        )
+        order by r."createdAt" desc
+      )
+      from (
+        select *
+        from public."Comments" r
+        where r."mainCommentID" = mc."commentID"
+          and r."commentType" = 'Reply'
+        order by r."createdAt" desc
+        limit 3
+      ) r
+      left join public."Comments" p on r."parentCommentID" = p."commentID"
+      left join public."Profile" pc on p."commenterAccountID" = pc."accountID"
+    ) as replies
+  from 
+    main_comments mc
+  order by 
+    mc."createdAt" desc;
 $$;
