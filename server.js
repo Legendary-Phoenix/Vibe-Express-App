@@ -233,7 +233,7 @@ app.get("/comment",attachSupabase, async (req,res)=>{
 app.get("/comment/reply",attachSupabase, async (req,res)=>{
     const {accountID,mainCommentID,cursorIndex=new Date().toISOString(),limit=5}=req.query;
 
-    const {data,error}=req.supabase.rpc("get_comment_replies",{
+    const {data,error}=await req.supabase.rpc("get_comment_replies",{
         input_main_comment_id:mainCommentID,
         input_cursor:cursorIndex,
         input_limit:limit
