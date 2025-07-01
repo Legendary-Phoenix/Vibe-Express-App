@@ -231,26 +231,24 @@ app.get("/comment",attachSupabase, async (req,res)=>{
 })
 
 app.get("/comment/reply",attachSupabase, async (req,res)=>{
-    const {accountID,mainCommentID,cursorIndex=new Date().toISOString(),limit=10}=req.query;
+    const {accountID,mainCommentID,cursorIndex=new Date().toISOString(),limit=5}=req.query;
 
-    const {data:replyData,error:replyError}=await req.supabase.from("Comments")
-        .select("*")
-        .eq("commentType","Reply")
-        .eq("mainCommentID",mainCommentID)
-        .lt("createdAt",cursorIndex)
-        .order("createdAt",{ascending:false})
-        .limit(limit);
-    if (replyError){
-        return sendErrorResponse({res,statusCode:500,errorMessage:`Reply Data Error: ${replyError.message}`});
+    const {data,error}=req.supabase.rpc("get_comment_replies",{
+        input_main_comment_id:mainCommentID,
+        input_cursor:cursorIndex,
+        input_limit:limit
+    })
+    if (error){
+        return sendErrorResponse({res,statusCode:500,errorMessage:`Reply Data Error: ${error.message}`});
     }
-    if (!replyData.length){
+    if (!data.length){
         return sendSuccessResponse({res,data:[],nextCursor:{nextCursor:null}});
     }
-    return handleJoinedResponse({accountID, fieldToExtractIDs:"commenterAccountID",res, reqSupabase:req.supabase,
-        data:replyData,
-        nextCursor:{nextCursor:encodeURIComponent(replyData[replyData.length-1].createdAt)}
-    });
-    
+    const {data:joinedData, error:joinedError}=await joinFleetDataForComment(accountID,data,req.supabase);
+    if (joinedError){
+        return sendErrorResponse({res,statusCode:500,errorMessage:`Join Data Error: ${joinedError.message}`});
+    }
+    return sendSuccessResponse({res,data:joinedData,nextCursor:{nextCursor:encodeURIComponent(data[data.length-1].createdat)}});
 })
 
 app.get("/public-url",attachSupabase, async (req,res)=>{
