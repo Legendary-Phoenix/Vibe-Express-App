@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 
 import shuffleArray from "./utils/shuffleArray.js";
 import { sendSuccessResponse, sendErrorResponse, handleJoinedResponse } from "./utils/responseUtils.js";
@@ -12,9 +13,22 @@ process.env.NODE_ENV !== 'production' && dotenv.config();
 const app=express();
 const PORT=process.env.PORT || 3000;
 
+//rate limit
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, 
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    errorMessage: "Too many requests. Please try again later.",
+  },
+});
+
 //middleware
 app.use(cors());
 app.use(express.json());
+app.use(generalLimiter);
 
 app.use("/auth", authRoutes);
 
