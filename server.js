@@ -26,6 +26,7 @@ const generalLimiter = rateLimit({
 });
 
 //middleware
+app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json());
 app.use(generalLimiter);
